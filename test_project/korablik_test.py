@@ -37,6 +37,7 @@ def get_all_content(html):
                 # 'img': HOST + it.find('div', class_='tpl-pictured-bg').get('style')
             }
         )
+    #   print('Type of "name","info" etc: ', type('link'))
     return child
 
 
@@ -111,16 +112,18 @@ def menu():
         else:
             print('Error status code')
     elif case == '2':
-        choose = input('\tВыберете номер ребёнка: ')
-        choose = int(choose.strip())
         html = get_html(URL_O)
         if html.status_code == 200:
+            patc = parser(html)
+            length = len(patc)
+            print('\tВыберете номер ребёнка (Available ', length, '):')
+            choose = input()
+            choose = int(choose.strip())
             get_child(html, choose)
         else:
             print('Error status code')
     elif case == '3':
         r = get_html(URL_C)
-
         if r.status_code == 200:
             html = r.content
             get_contacts(html)
@@ -149,49 +152,11 @@ def menu():
         menu()
     menu()
 
+
 def main():
     info()
     menu()
-    """case = input('\tВыберете пункт меню: ')
-    case = int(case.strip())
-    if case == 1:
-        html = get_html(URL_O)
-        if html.status_code == 200:
-            print(parser(html))
-        else:
-            print('Error status code')
-    elif case == 2:
-        choose = input('\tВыберете номер ребёнка: ')
-        choose = int(choose.strip())
-        html = get_html(URL_O)
-        if html.status_code == 200:
-            get_child(html, choose)
-        else:
-            print('Error status code')
-    elif case == 3:
-        r = get_html(URL_C)
 
-        if r.status_code == 200:
-            html = r.content
-            get_contacts(html)
-        else:
-            print('Error status code')
-        #   print(parser())
-    elif case == 4:
-        html = get_html(URL_R)
-        if html.status_code == 200:
-            get_reports(html)
-        else:
-            print('Error status code')
-    elif case == 5:
-        html = get_html(URL_A)
-        if html.status_code == 200:
-            get_about(html)
-        else:
-            print('Error status code')
-    elif case == 0:
-        return
-"""
 
 if __name__ == '__main__':
     main()
