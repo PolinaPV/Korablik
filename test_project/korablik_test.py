@@ -1,9 +1,10 @@
+import json
 import requests
 from bs4 import BeautifulSoup
-import json
 
 
 BASE_HOST = 'https://korablik-fond.ru/'
+HELP_HOST = 'help/'
 CHILD_HOST = 'our-children/'
 CONT_HOST = 'contacts/'
 REP_HOST = 'reporting/'
@@ -14,39 +15,39 @@ HEADERS = {
 }
 
 
-def get_html(url, params=''):
-    r = requests.get(url, headers=HEADERS, params=params)
-    #   print(dir(r))
-    return r
+def get_html(url):
+    req = requests.get(url, headers=HEADERS)
+    #   print(req)
+    return req
 
 
 def get_all_content(html):
     soup = BeautifulSoup(html, 'html5lib')
+    # print(soup)
     #   pg = soup.find('div', id='panel-689-1-0-2')  # Панель "Им нужна помощь"
     items = soup.find('div', id='panel-689-1-0-2').find_all('div', class_='child-card-content')
     child = []
     #   print(pg.prettify())
-    for it in items:
+    for item in items:
         child.append(json.dumps(
             {
-                'name': it.find('h4').get_text(strip=True),
-                'info': [p.get_text(strip=True) for p in it.findAll('p')],  # it.find('p').get_text(),
-                'link': BASE_HOST + it.find('div', class_='leyka-scale-button').find('a').get('href'),
-                'money': [div.get_text() for div in it.findAll('div', class_='leyka-scale-label')]
-                # 'img': HOST + it.find('div', class_='tpl-pictured-bg').get('style')
-            }, sort_keys=False, indent=4, ensure_ascii=False, separators=(',', ': '))
-        )
+                'name': item.find('h4').get_text(strip=True),
+                'info': [p.get_text(strip=True) for p in item.findAll('p')],  # it.find('p').get_text(),
+                'link': item.find('div', class_='leyka-scale-button').find('a').get('href'),
+                'money': [div.get_text() for div in item.findAll('div', class_='leyka-scale-label')],
+                'img': item.find('div', class_='tpl-pictured-bg').get('style')
+            }, sort_keys=False, indent=4, ensure_ascii=False, separators=(',', ': ')))
     return child
 
 
 def get_child(url, num):
-    n = parser(url)
-    print(n[num-1])
+    child = parser(url)
+    print(child[num-1])
 
 
 def get_contacts(url):
-    sp = BeautifulSoup(url, 'html5lib')
-    cont = sp.find('div', class_='col-md-7').find('ul')
+    soup = BeautifulSoup(url, 'html5lib')
+    cont = soup.find('div', class_='col-md-7').find('ul')
     # print(cont)
     tmp = cont.findAll('li')
     print(type(tmp))
@@ -58,6 +59,10 @@ def get_contacts(url):
     print(contact)
 
 
+def get_help():
+    print('Перейдите по ссылке и заполните форму: ', BASE_HOST + HELP_HOST)
+
+
 def get_reports(url):
     print('COme soon!')
 
@@ -66,7 +71,7 @@ def get_about(url):
     print('COme soon!')
 
 
-def parser(url, params=''):
+def parser(url):
     child = []
     child.extend(get_all_content(url.text))
     return child
@@ -80,16 +85,17 @@ def info():
           '\t 3. Контакты\n'
           '\t 4. Отчеты\n'
           '\t 5. About us!\n'
+          '\t 6. Need help\n'
           '\t 0. Exit.')
 
 
 def menu():
     case = input('\tВыберете пункт меню: ')
-    # case = int(case.strip())
     if case == '1':
-        html = get_html(BASE_HOST+ CHILD_HOST)
+        html = get_html(BASE_HOST + CHILD_HOST)
         if html.status_code == 200:
             print('\n'.join(map(str, parser(html))))
+            #   print(type(parser(html)))
         else:
             print('Error status code')
     elif case == '2':
@@ -104,9 +110,9 @@ def menu():
         else:
             print('Error status code')
     elif case == '3':
-        r = get_html(BASE_HOST + CONT_HOST)
-        if r.status_code == 200:
-            html = r.content
+        req = get_html(BASE_HOST + CONT_HOST)
+        if req.status_code == 200:
+            html = req.content
             get_contacts(html)
         else:
             print('Error status code')
@@ -123,6 +129,8 @@ def menu():
             get_about(html)
         else:
             print('Error status code')
+    elif case == '6':
+        get_help()
     elif case == 'i':
         info()
         menu()
