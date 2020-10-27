@@ -8,6 +8,7 @@ CHILD_HOST = 'our-children/'
 CONT_HOST = 'contacts/'
 REP_HOST = 'reporting/'
 ABOUT_HOST = 'about/'
+VAKANS_HOST = 'vakansii/'
 HEADERS = {
     'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9',
     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/86.0.4240.75 Safari/537.36'
@@ -117,8 +118,18 @@ def get_help():
     return requiz"""
 
 
-def get_about(url):
-    print('Come soon!')
+def get_vacancy(url):
+    soup = BeautifulSoup(url, 'html5lib')
+    print(type(soup))
+    all_vac = soup.find('div', id='pgc-13480-2-0')
+    #   print(type(all_vac))
+    vac = all_vac.findAll('div', class_='so-panel')
+    print(type(vac))
+    vacancy = []
+    for div in vac:
+        vacancy.append(div.get_text())
+        #print(div)
+    return vacancy
 
 
 def get_clear_link(dictionary):
@@ -174,7 +185,7 @@ def info():
           '\t 1. Вывод всех детей\n'
           '\t 2. Вывод n-ого ребёнка\n'
           '\t 3. Контакты и реквизиты\n'
-          '\t 4. About us!\n'
+          '\t 4. Вакансии\n'
           '\t 5. Need help\n'
           '\t 0. Exit.')
 
@@ -206,9 +217,11 @@ def menu():
         else:
             print('Error status code')
     elif case == '4':
-        html = get_html(BASE_HOST + ABOUT_HOST)
+        html = get_html(BASE_HOST + VAKANS_HOST)
         if html.status_code == 200:
-            get_about(html)
+            html = html.content
+            #   get_vacancy(html)
+            print(get_vacancy(html))
         else:
             print('Error status code')
     elif case == '5':
