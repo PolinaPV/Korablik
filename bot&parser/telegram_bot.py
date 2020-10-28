@@ -6,14 +6,14 @@ from telebot.types import InlineKeyboardButton, InlineKeyboardMarkup, ReplyKeybo
 import emoji
 
 #   print(dir(emoji))
-print(emoji.demojize('😉'))
+#   print(emoji.demojize('😉'))
 #   print(emoji.emojize(':red_heart:'))
 #   print('назад ' + emoji.emojize(':right_arrow_curving_left_selector:', variant="emoji_type"))
 
 BASE_HOST = 'https://korablik-fond.ru/'
 HELP_HOST = 'help/'
 CHILD_HOST = 'our-children/'
-CONT_HOST = 'contacts/'
+CONTACT_HOST = 'contacts/'
 REP_HOST = 'reporting/'
 ABOUT_HOST = 'about/'
 VACANS_HOST = 'vakansii/'
@@ -31,8 +31,8 @@ TOKEN = TOKEN_FILE.read()
 bot = telebot.TeleBot(TOKEN)
 START_MESS = '*Приветствую, {}*' + emoji.emojize(':waving_hand_light_skin_tone:') + '\n\n' + \
              'Я _бот-помощник_ детского благотворительного фонда Кораблик. К вашим услугам!'
-RE_MES = 'Что ж, {}, посмотрим что еще я _могу сделать_ для вас'
-RETURN_MES = 'Могу помочь чем-нибудь ещё?' + emoji.emojize(':winking_face:')
+BACK_MESS = 'Что ж, {}, посмотрим что еще я _могу сделать_ для вас'
+RETURN_MESS = 'Могу помочь чем-нибудь ещё?' + emoji.emojize(':winking_face:')
 
 #   Start menu Keyboard
 button_need_help = KeyboardButton('Мне нужна помощь ' + emoji.emojize(':face_with_head-bandage:'))
@@ -84,7 +84,7 @@ def need_help_command(message):
         button_help_host = InlineKeyboardButton(text='Внешняя ссылка', url=BASE_HOST + HELP_HOST)
         keyboard.add(button_help_host)
         bot.send_message(message.chat.id, mes, reply_markup=keyboard)
-        bot.send_message(message.chat.id, RETURN_MES, reply_markup=back_markup)
+        bot.send_message(message.chat.id, RETURN_MESS, reply_markup=back_markup)
 
     # #   Кнопка "Хочу помочь"
     elif message.text[0:11].lower() == 'хочу помочь' or message.text.lower() == 'помочь':
@@ -101,7 +101,7 @@ def need_help_command(message):
             bot.send_message(message.chat.id, mes +
                              '\n\nДля более подробной информации перейдите по _ссылке_ на страничку ребенка.',
                              reply_markup=keyboard, parse_mode='Markdown')
-        bot.send_message(message.chat.id, RETURN_MES, reply_markup=back_markup)
+        bot.send_message(message.chat.id, RETURN_MESS, reply_markup=back_markup)
 
     # #   Кнопка "Чем занимается фонд"
     elif message.text[0:10].lower() == 'хочу знать' or message.text.lower() == 'фонд':
@@ -111,12 +111,12 @@ def need_help_command(message):
         keyboad = InlineKeyboardMarkup()
         keyboad.add(InlineKeyboardButton('Внешняя ссылка', url=BASE_HOST + ABOUT_HOST))
         bot.send_message(message.chat.id, mes, reply_markup=keyboad)
-        bot.send_message(message.chat.id, RETURN_MES, reply_markup=back_markup)
+        bot.send_message(message.chat.id, RETURN_MESS, reply_markup=back_markup)
 
     # #   Кнопка "Получить контакты и реквизиты"
     elif message.text[0:13].lower() == 'хочу получить' or message.text.lower() == 'получить':
         telebot.types.ReplyKeyboardRemove
-        cont_req = get_contacts(parser(BASE_HOST + CONT_HOST).text)
+        cont_req = get_contacts(parser(BASE_HOST + CONTACT_HOST).text)
         for dic in cont_req:
             mes_cont = '_Телефон: _' + str(dic['phone']) + '\n_Электронная почта: _' + \
                        str(dic['mail']) + '\n_Адрес: _' + str(dic['adres'])  # str(dic['links']) - соцсети
@@ -129,7 +129,7 @@ def need_help_command(message):
                       '\n' + str(dic['k_c']) + '\n' + str(dic['filial']) + '\n' + str(dic['bik']) + \
                       '\n' + str(dic['swift'])
             bot.send_message(message.chat.id, '*РЕКВИЗИТЫ\n\n*' + mes_req, parse_mode='Markdown')
-        bot.send_message(message.chat.id, RETURN_MES, reply_markup=back_markup)
+        bot.send_message(message.chat.id, RETURN_MESS, reply_markup=back_markup)
 
     # #   Кнопка "Волонтер"
     elif message.text[0:10].lower() == 'хочу стать':
@@ -139,7 +139,7 @@ def need_help_command(message):
         keyboard = InlineKeyboardMarkup()
         keyboard.add(InlineKeyboardButton('Внешняя ссылка', url=BASE_HOST + VOLONTER_HOST))
         bot.send_message(message.chat.id, mes, reply_markup=keyboard, parse_mode='Markdown')
-        bot.send_message(message.chat.id, RETURN_MES, reply_markup=back_markup)
+        bot.send_message(message.chat.id, RETURN_MESS, reply_markup=back_markup)
     # #   Кнопка "Хочу работать"
     elif message.text[0:13].lower() == 'хочу работать':
         telebot.types.ReplyKeyboardRemove
@@ -158,11 +158,11 @@ def need_help_command(message):
         help_mes = 'Если не нашли подходящей должности, вы можете просто прислать ваше резюме на почту hr@korablik-fond.ru' + \
             ' или присоединиться к волонтерской программе. Мы рады всем!'
         bot.send_message(message.chat.id, help_mes, parse_mode='Markdown')
-        bot.send_message(message.chat.id, RETURN_MES, reply_markup=back_markup)
+        bot.send_message(message.chat.id, RETURN_MESS, reply_markup=back_markup)
 
     # # Кнопка "Назад"
     elif message.text[0:5].lower() == 'назад':
-        bot.send_message(message.chat.id, RE_MES.format(message.chat.first_name),
+        bot.send_message(message.chat.id, BACK_MESS.format(message.chat.first_name),
                          reply_markup=start_markup, parse_mode='Markdown')
 
     else:
