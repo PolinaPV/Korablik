@@ -97,37 +97,23 @@ def get_help():
     print('Перейдите по ссылке и заполните форму: ', BASE_HOST + HELP_HOST)
 
 
-"""def get_reuizits(url):
-    soup = BeautifulSoup(url, 'html5lib')
-    col = soup.find('div', class_='col-md-7')
-    req = col.findAll('ul')
-    li_1 = req[2].findAll('li')
-    li_2 = req[3].findAll('li')
-    #   print(req)
-    requiz = dict({
-        'regist': li_1[0].get_text(strip=True),
-        'ogrn': li_1[1].get_text(strip=True),
-        'inn': li_1[2].get_text(strip=True),
-        'ur adres': li_1[3].get_text(),
-        'r/s': li_2[0].get_text(strip=True),
-        'k/c': li_2[1].get_text(strip=True),
-        'filial': li_2[2].get_text(strip=True),
-        'bik': li_2[3].get_text(),
-        'swift': li_2[4].get_text(strip=True)
-    }, separators=(',', ': '))
-    return requiz"""
-
-
 def get_vacancy(url):
     soup = BeautifulSoup(url, 'html5lib')
-    print(type(soup))
     all_vac = soup.find('div', id='pgc-13480-2-0')
-    #   print(type(all_vac))
-    vac = all_vac.findAll('div', class_='so-panel')
-    print(type(vac))
+    #   title_vacancy = all_vac.findAll('h3', class_='widget-title')
+    vac = all_vac.findAll('div', class_='so-widget-sow-editor')
     vacancy = []
     for div in vac:
-        vacancy.append(div.get_text())
+        tmp = div.find('h3', class_='widget-title').get_text()
+        """tmp = div.findAll('p')  # 3 4 5
+        print(len(tmp))
+        info = dict({
+            'title': div.find('h3', class_='widget-title').get_text(),
+            'requirenment': tmp[2].get_text(),
+            'terms': tmp[3].get_text()
+            #'some': tmp[4].get_text()
+        })"""
+        vacancy.append(tmp)
         #print(div)
     return vacancy
 
@@ -221,7 +207,7 @@ def menu():
         if html.status_code == 200:
             html = html.content
             #   get_vacancy(html)
-            print(get_vacancy(html))
+            print('\n'.join(map(str, get_vacancy(html))))
         else:
             print('Error status code')
     elif case == '5':
