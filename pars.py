@@ -1,6 +1,7 @@
 import requests
 from bs4 import BeautifulSoup
 
+''' Old version parser of the Korablik-fond.ru website '''
 
 HEADERS = {
     'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9',
@@ -23,27 +24,27 @@ def get_parser(url):
 
 def get_all_content(url):
     soup = BeautifulSoup(url, 'html5lib')
-    items = soup.find('div', id='panel-689-1-0-2').find_all('div', class_='child-card-content')
-    child = []
-    for item in items:
-        infos = item.findAll('p')
+    child_panels = soup.find('div', id='panel-689-1-0-2').find_all('div', class_='child-card-content')
+    children = []
+    for child in child_panels:
+        infos = child.findAll('p')
         tmp = dict({
-            'name': item.find('h4').get_text(strip=True),
+            'name': child.find('h4').get_text(strip=True),
             'age': infos[0].get_text(),
             'city': infos[1].get_text(),
             'diagnoz': infos[2].get_text(),
-            'link': item.find('div', class_='leyka-scale-button').find('a').get('href'),
-            'money': item.find('div', class_='leyka-scale-label').get_text().strip(),
-            'img': item.find('div', class_='tpl-pictured-bg').get('style')
+            'link': child.find('div', class_='leyka-scale-button').find('a').get('href'),
+            'money': child.find('div', class_='leyka-scale-label').get_text().strip(),
+            'img': child.find('div', class_='tpl-pictured-bg').get('style')
         })
         tmp = get_clear_link(tmp)
-        child.append(tmp)
-    return child
+        children.append(tmp)
+    return children
 
 
 def get_child(url, num):
-    child = get_all_content(url.text)
-    print(child[num - 1])
+    child = get_all_content(url)
+    return child[num]
 
 
 def get_contacts(url):
@@ -151,3 +152,35 @@ def get_clear_contacts(dictionary):
             if i_beg != -1 & i_end != -1:
                 dictionary.update({'point': value[i_beg: i_end + 3]})
     return dictionary
+
+
+def get_child_key(dictionary):
+    last_key = 'ttt'
+    #   print(dictionary)
+    for key, value in dictionary.items():
+        if key.find('link') != -1:
+            i_beg = value.find('campaign/')
+            i_end = value.rfind('/')
+            if i_beg != -1 & i_end != -1:
+                last_key = value[i_beg + 9: i_end]
+    #   print(last_key)
+    return last_key
+
+
+false_file = open('false_last_key.txt', 'r')
+false_key = false_file.read()
+
+
+#   print(false_key)
+def new_child(url):
+    new = []
+    childrens = get_all_content(url)
+    for dict in childrens:
+        last_key = get_child_key(dict)
+        if last_key != false_key:
+            print('last =', last_key, ' false =', false_key)
+            new.append(dict)
+        else:
+            break
+    return new
+
