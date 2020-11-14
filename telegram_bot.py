@@ -7,29 +7,29 @@ from telebot.types import InlineKeyboardButton, InlineKeyboardMarkup, ReplyKeybo
 import emoji
 from sqliter import SQLiter
 
-#   print(emoji.demojize('😉'))
-#   print(emoji.emojize(':red_heart:'))
-#   print('назад ' + emoji.emojize(':right_arrow_curving_left_selector:', variant="emoji_type"))
+#   print(emoji.demojize('👍🏻'))     # Декодирование эмоджи
 
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(filename='korablik.log', format="%(asctime)s - [%(levelname)s] - %(app)s - %(name)s - "
+                                                    "(%(filename)s).%(funcName)s(%(lineno)d) - %(message)s",
+                    level=logging.INFO)
+db = SQLiter('users.db')
+bot = telebot.TeleBot(config.TOKEN)
 
 BASE_HOST = 'https://korablik-fond.ru/'
 HELP_HOST = 'help/'
 CHILD_HOST = 'our-children/'
 CONTACT_HOST = 'contacts/'
-#   REP_HOST = 'reporting/'
 ABOUT_HOST = 'about/'
 VACANS_HOST = 'vakansii/'
 VOLONTER_HOST = 'join-us/'
 
 PDF_FILE = open('Фонд Кораблик.pdf', 'rb')
 
-bot = telebot.TeleBot(config.TOKEN)
-#   print(dir(bot))
 START_MESS = '*Приветствую, {}* ' + emoji.emojize(':waving_hand_light_skin_tone:') + '\n\n' + \
              'Я _бот-помощник_ детского благотворительного фонда Кораблик. К вашим услугам!'
 FEEDBACK_MESS = 'Могу помочь чем-нибудь ещё? ' + emoji.emojize(':winking_face:')
 RETURN_MESS = 'Что ж, {}, посмотрим что еще я могу сделать для вас'
+LINK_TRACK = 'utm_source=tg_bot&utm_medium=content&utm_campaign=general&utm_content={}'
 
 #   Start menu Keyboard
 button_need_help = KeyboardButton('Мне нужна помощь')  # + emoji.emojize(':face_with_head-bandage:'))
@@ -38,18 +38,33 @@ button_need_info = KeyboardButton('Хочу знать чем занимаетс
 button_need_contact = KeyboardButton('Хочу получить контакты и реквизиты')  # + emoji.emojize(':link:'))
 button_volonter = KeyboardButton('Хочу стать волонтером')  # + emoji.emojize(':baby_angel_light_skin_tone:'))
 button_need_work = KeyboardButton('Хочу работать у вас')  # + emoji.emojize(':money_with_wings:'))
+subscription_button = InlineKeyboardButton('Управление подпиской')
 start_markup = ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True, row_width=2)
 start_markup.add(button_need_help, button_can_help, button_need_info)
 start_markup.add(button_need_contact)
 start_markup.add(button_volonter, button_need_work)
+start_markup.add(subscription_button)
 #   Back button Keyboard
 button_back = KeyboardButton('Назад️ ' + emoji.emojize(':right_arrow_curving_left_selector:'))
 back_markup = ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True, )
 back_markup.add(button_back)
+#   Subscription/unsubscription Keyboard
+yes_subscribe = InlineKeyboardButton('Да ' + emoji.emojize(':thumbs_up_light_skin_tone:'), callback_data='yes')
+no_subscribe = InlineKeyboardButton('Нет ' + emoji.emojize(':thumbs_down_light_skin_tone:'), callback_data='no')
+yes_unsubscribe = InlineKeyboardButton('Да ' + emoji.emojize(':thumbs_down_light_skin_tone:'), callback_data='no')
+no_unsubscribe = InlineKeyboardButton('Нет ' + emoji.emojize(':thumbs_up_light_skin_tone:'), callback_data='yes')
+subscription_keyboard = InlineKeyboardMarkup()
+unsubscription_keyboard = InlineKeyboardMarkup()
+subscription_keyboard.add(yes_subscribe, no_subscribe)
+unsubscription_keyboard.add(yes_unsubscribe, no_unsubscribe)
 
 
 @bot.message_handler(commands=['start'])
 def start_command(message):
+    if not db.users_exists(message.from_user.id):
+        db.add_user(message.from_user.id)
+    else:
+        print("user add")
     bot.send_message(message.chat.id, START_MESS.format(message.chat.first_name),
                      reply_markup=start_markup, parse_mode='Markdown')
 
@@ -71,12 +86,14 @@ def need_help_command(message):
             mes = '\nПерейдите по ссылке на наш сайт и заполните форму обращения.\n\n' + \
                   str(infos['lead']) + str(infos['spisok'])
             keyboard = InlineKeyboardMarkup()
-            button_help_host = InlineKeyboardButton(text='Внешняя ссылка', url=BASE_HOST + HELP_HOST)
+            button_help_host = InlineKeyboardButton(text='Внешняя ссылка',
+                                                    url=BASE_HOST + '?' + HELP_HOST + LINK_TRACK.format(
+                                                        message.from_user.id))
             keyboard.add(button_help_host)
             bot.send_message(message.chat.id, mes, reply_markup=keyboard)
             bot.send_message(message.chat.id, FEEDBACK_MESS, reply_markup=back_markup)
-        except:
-            print("error get_memo")
+        except Exception as error:
+            print("error get_memo: ".format(error))
 
     # #   Кнопка "Хочу помочь"
     elif message.text[0:11].lower() == 'хочу помочь' or message.text.lower() == 'помочь':
@@ -87,7 +104,8 @@ def need_help_command(message):
             mes = '*' + str(dic['name']) + '*\n\n' + str(dic['age']) + '\n' + str(dic['city']) + \
                   '\n' + str(dic['diagnoz']) + '\n' + '\n_' + str(dic['money'] + '_')
             keyboard = InlineKeyboardMarkup()
-            keyboard.add(InlineKeyboardButton('Помочь прямо сейчас!', url=str(dic['link'])))
+            keyboard.add(InlineKeyboardButton('Помочь прямо сейчас!',
+                                              url=str(dic['link']) + '&' + LINK_TRACK.format(message.from_user.id)))
             bot.send_photo(message.chat.id, str(dic['img']))
             bot.send_message(message.chat.id, mes +
                              '\n\nДля более подробной информации перейдите по _ссылке_ на страничку ребенка.',
@@ -108,11 +126,12 @@ def need_help_command(message):
     elif message.text[0:13].lower() == 'хочу получить' or message.text.lower() == 'получить':
         cont_req = pars.get_contacts(pars.get_parser(BASE_HOST + CONTACT_HOST).text)
         for dic in cont_req:
-            mes_cont = '_Телефон: _' + str(dic['phone']) + '\n_Электронная почта: _' + \
+            mes_cont = '\n_Телефон: _' + str(dic['phone']) + '\n_Электронная почта: _' + \
                        str(dic['mail']) + '\n_Адрес: _' + str(dic['adres'])  # str(dic['links']) - соцсети
             keyboard = InlineKeyboardMarkup()
-            keyboard.add(InlineKeyboardButton('Яндекс.Карты', url=str(dic['point'])))
-            bot.send_message(message.chat.id, '*КОНТАКТЫ\n\n*' + mes_cont, reply_markup=keyboard, parse_mode='Markdown')
+            keyboard.add(InlineKeyboardButton('Яндекс.Карты',
+                                              url=str(dic['point']) + '&' + LINK_TRACK.format(message.from_user.id)))
+            bot.send_message(message.chat.id, '*КОНТАКТЫ\n*' + mes_cont, reply_markup=keyboard, parse_mode='Markdown')
             link_mess = 'Ссылки на соцсети:'
             link_keyboard = InlineKeyboardMarkup(row_width=2)
             vk_link = InlineKeyboardButton('ВКонтакте', url=dic['links'][0])
@@ -123,9 +142,8 @@ def need_help_command(message):
             bot.send_message(message.chat.id, link_mess, reply_markup=link_keyboard)
 
             mes_req = str(dic['regist']) + '\n' + str(dic['ogrn']) + '\n' + \
-                      str(dic['inn']) + '\n' + str(dic['ur_adr']) + '\n' + str(dic['r_s']) + \
-                      '\n' + str(dic['k_c']) + '\n' + str(dic['filial']) + '\n' + str(dic['bik']) + \
-                      '\n' + str(dic['swift'])
+                      str(dic['inn']) + '\n' + str(dic['ur_adr']) + '\n' + str(dic['r_s']) + '\n' + \
+                      str(dic['k_c']) + '\n' + str(dic['filial']) + '\n' + str(dic['bik']) + '\n' + str(dic['swift'])
             bot.send_message(message.chat.id, '*РЕКВИЗИТЫ\n\n*' + mes_req, parse_mode='Markdown')
         bot.send_message(message.chat.id, FEEDBACK_MESS, reply_markup=back_markup)
 
@@ -134,7 +152,9 @@ def need_help_command(message):
         mes = '*Это очень круто!* \nЧтобы стать нашим волонтером перейдите по ссылке и заполните форму.\n' + \
               pars.get_volonter(pars.get_parser(BASE_HOST + VOLONTER_HOST).text)
         keyboard = InlineKeyboardMarkup()
-        keyboard.add(InlineKeyboardButton('Внешняя ссылка', url=BASE_HOST + VOLONTER_HOST))
+        keyboard.add(InlineKeyboardButton('Внешняя ссылка',
+                                          url=BASE_HOST + VOLONTER_HOST + '?' + LINK_TRACK.format(
+                                              message.from_user.id)))
         bot.send_message(message.chat.id, mes, reply_markup=keyboard, parse_mode='Markdown')
         bot.send_message(message.chat.id, FEEDBACK_MESS, reply_markup=back_markup)
 
@@ -150,12 +170,22 @@ def need_help_command(message):
                 print('Too long message')'''
         link_mes = '\nДля более подробной информации по вакансиям посетите *наш сайт*!'
         keyboard = InlineKeyboardMarkup()
-        keyboard.add(InlineKeyboardButton('Внешняя ссылка', url=BASE_HOST + VACANS_HOST))
+        keyboard.add(InlineKeyboardButton('Внешняя ссылка',
+                                          url=BASE_HOST + VACANS_HOST + '?' + LINK_TRACK.format(message.from_user.id)))
         bot.send_message(message.chat.id, mes + link_mes, reply_markup=keyboard, parse_mode='Markdown')
         help_mes = 'Если не нашли подходящей должности, вы можете просто прислать ваше резюме на почту hr@korablik-fond.ru' + \
                    ' или присоединиться к волонтерской программе. Мы рады всем!'
         bot.send_message(message.chat.id, help_mes, parse_mode='Markdown')
         bot.send_message(message.chat.id, FEEDBACK_MESS, reply_markup=back_markup)
+
+    # #   Кнопка управления подпиской
+    elif message.text[0:10].lower() == 'управление':
+        if not db.subscriber_exist(message.from_user.id):
+            bot.send_message(message.chat.id, 'Вы не подписаны! Хотите подписаться?',
+                             reply_markup=subscription_keyboard)
+        else:
+            bot.send_message(message.chat.id, 'Вы уже подписаны! Желаете отписаться..?',
+                             reply_markup=unsubscription_keyboard)
 
     # # Кнопка "Назад"
     elif message.text[0:5].lower() == 'назад':
@@ -175,14 +205,24 @@ def handle_doc(message):
     doc_id = message.document.file_id
     file_info = bot.get_file(doc_id)
     #   file.file_path = 'C:/Users/User/Documents/PycharmProjects/Korablik/'
-    print(file_info)
-    #   print(file.file_path)
     try:
         urllib.request.urlretrieve(f'http://api.telegram.org/file/bot{config.TOKEN}/{file_info.file_path}',
                                    file_info.file_path)
         bot.send_message(message.chat.id, 'Спасибо, ваше резюме принято!')
-    except:
-        print('Error get file')
+    except Exception as error:
+        print('Error get file: '.format(error))
+
+
+@bot.callback_query_handler(func=lambda call: True)
+def subscription_command(call):
+    if call.data == 'yes':
+        db.update_subscription(call.from_user.id, True)
+        bot.send_message(call.message.chat.id, 'Отлично! Вы подписаны.')
+        bot.send_message(call.message.chat.id, FEEDBACK_MESS, reply_markup=back_markup)
+    elif call.data == 'no':
+        db.update_subscription(call.from_user.id, False)
+        bot.send_message(call.message.chat.id, 'Жаль... Вы отписались')
+        bot.send_message(call.message.chat.id, FEEDBACK_MESS, reply_markup=back_markup)
 
 
 @bot.message_handler(func=lambda message: True)
