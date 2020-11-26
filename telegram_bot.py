@@ -1,23 +1,30 @@
 import config
-import logging
-import urllib.request
+from loguru import logger
 import pars
-#   import telebot
-#   from telebot.types import InlineKeyboardButton, InlineKeyboardMarkup, ReplyKeyboardMarkup, KeyboardButton
 import asyncio
-import nest_asyncio
 from aiogram import Dispatcher, executor, Bot
 from aiogram.types import ReplyKeyboardMarkup, KeyboardButton, InlineKeyboardButton, InlineKeyboardMarkup
 from aiogram.utils.exceptions import FileIsTooBig
+import urllib.request
 import emoji
-from sqliter import SQLiter
+"""  
+#   telebot не ассинхронная либа, не вариант для рассылки  
+import telebot
+from telebot.types import InlineKeyboardButton, InlineKeyboardMarkup, ReplyKeyboardMarkup, KeyboardButton
+import logging  # Change to loguru
+"""
 
 #   print(emoji.demojize('👍🏻'))     # Декодирование эмоджи
+#   logging.basicConfig(filename='korablik.log', format='\n%(name)s - %(levelname)s - %(message)s', level=logging.INFO)
 
-logging.basicConfig(filename='korablik.log', format='\n%(name)s - %(levelname)s - %(message)s', level=logging.INFO)
-db = SQLiter('users.db')
+logger.add('debug_korablik_1.log', format='\t{time}  {level}  {message}\n\n',
+           level='ERROR', rotation='1 week', compression='zip')  # , serialize=True)     #   Для json формата
+
 bot = Bot(token=config.TOKEN)
-disp = Dispatcher(bot)
+dis = Dispatcher(bot)
+db = config.DB
+pdf_file = config.PDF_FILE
+loop = asyncio.get_event_loop()
 
 BASE_HOST = 'https://korablik-fond.ru/'
 HELP_HOST = 'help/'
@@ -27,12 +34,10 @@ ABOUT_HOST = 'about/'
 VACANS_HOST = 'vakansii/'
 VOLONTER_HOST = 'join-us/'
 
-PDF_FILE = open('Фонд Кораблик.pdf', 'rb')
-
 START_MESS = '*Приветствую, {}* ' + emoji.emojize(':waving_hand_light_skin_tone:') + '\n\n' + \
              'Я _бот-помощник_ детского благотворительного фонда Кораблик. К вашим услугам!'
 FEEDBACK_MESS = 'Могу помочь чем-нибудь ещё? ' + emoji.emojize(':winking_face:')
-RETURN_MESS = 'Что ж, {}, посмотрим что еще я могу сделать для вас'
+RETURN_MESS = 'Что ж, {}, посмотрим, что еще я могу сделать для вас.'
 LINK_TRACK = 'utm_source=tg_bot&utm_medium=content&utm_campaign=general&utm_content={}'
 
 #   Start menu Keyboard
@@ -63,27 +68,27 @@ subscription_keyboard.add(yes_subscribe, no_subscribe)
 unsubscription_keyboard.add(yes_unsubscribe, no_unsubscribe)
 
 
-@disp.message_handler(commands=['start'])
+@dis.message_handler(commands=['start'])
 async def start_command(message):
     if not db.users_exists(message.from_user.id):
         db.add_user(message.from_user.id)
         print('user add')
     else:
-        print("user already add")
+        pass
     await bot.send_message(message.chat.id, START_MESS.format(message.chat.first_name),
                            reply_markup=start_markup, parse_mode='Markdown')
 
 
-@disp.message_handler(commands=['help'])
+@dis.message_handler(commands=['help'])
 async def help_command(message):
     keyboard = InlineKeyboardMarkup()
     keyboard.add(InlineKeyboardButton('Message the developer', url='telegram.me/chernobrovka'))
     await bot.send_message(message.chat.id, 'You can send message to developer!', reply_markup=keyboard)
 
 
-@disp.message_handler(content_types=['text'])
+@dis.message_handler(content_types=['text'])
 async def need_help_command(message):
-    """ Обработчик всех конпок стартовой клавиатуры """
+    """ Обработчик всех кнопок стартовой клавиатуры """
     #   bot.send_message(message.chat.id, message.text[0:])
     # #   Кнопка "Мне нужна помощь"
     if message.text[0:3].lower() == 'мне' or message.text.lower() == 'помощь':
@@ -105,7 +110,10 @@ async def need_help_command(message):
     elif message.text[0:11].lower() == 'хочу помочь' or message.text.lower() == 'помочь':
         mes_1 = 'Это чудесно! Вот список детей, нуждающихся в помощи в данный момент:'
         await bot.send_message(message.chat.id, mes_1)
+        # t_start = perf_counter()
         childs = pars.get_all_content(pars.get_parser(BASE_HOST + CHILD_HOST).text)
+        # t_stop = perf_counter()
+        # print("Elapsed time:", t_start, t_stop)
         for dic in childs:
             mes = '*' + str(dic['name']) + '*\n\n' + str(dic['age']) + '\n' + str(dic['city']) + \
                   '\n' + str(dic['diagnoz']) + '\n' + '\n_' + str(dic['money'] + '_')
@@ -121,12 +129,12 @@ async def need_help_command(message):
 
     # #   Кнопка "Чем занимается фонд"
     elif message.text[0:10].lower() == 'хочу знать' or message.text.lower() == 'фонд':
-        await bot.send_document(message.chat.id, PDF_FILE)
-        mes = '\nБолее подробную информацию о фонде вы можете получить на соответствующей страничке сайта.'
+        await bot.send_document(message.chat.id, pdf_file)
+        mes = '\nВы можете ознакомится с наей презентацией! \n' \
+              'Более подробную информацию о фонде вы можете получить на соответствующей страничке сайта.'
         keyboad = InlineKeyboardMarkup()
         keyboad.add(InlineKeyboardButton('Внешняя ссылка', url=BASE_HOST + ABOUT_HOST))
         await bot.send_message(message.chat.id, mes, reply_markup=keyboad)
-
         await bot.send_message(message.chat.id, FEEDBACK_MESS, reply_markup=back_markup)
 
     # #   Кнопка "Получить контакты и реквизиты"
@@ -196,11 +204,12 @@ async def need_help_command(message):
             await bot.send_message(message.chat.id, 'Вы уже подписаны! Желаете отписаться..?',
                                    reply_markup=unsubscription_keyboard)
 
-    # # Кнопка "Назад"
+    # #   Кнопка "Назад"
     elif message.text[0:5].lower() == 'назад':
         await bot.send_message(message.chat.id, RETURN_MESS.format(message.chat.first_name),
                                reply_markup=start_markup, parse_mode='Markdown')
 
+    # #   Неизвестная команда
     else:
         try:
             await bot.send_message(message.chat.id, 'Простите, я не знаю такой команды ' +
@@ -209,7 +218,7 @@ async def need_help_command(message):
             print('Something wrong! Exception: {}'.format(err))
 
 
-@disp.message_handler(content_types=['document'])
+@dis.message_handler(content_types=['document'])
 async def handle_doc(message):
     """ Обработчик резюме """
     doc_id = message.document.file_id
@@ -220,12 +229,12 @@ async def handle_doc(message):
         urllib.request.urlretrieve(f'http://api.telegram.org/file/bot{config.TOKEN}/{file_info.file_path}',
                                    f'./documents/{doc_name}')
         await bot.send_message(message.chat.id, 'Спасибо, ваше резюме принято!')
-    except FileIsTooBig as error:
+    except FileIsTooBig:
         error_mes = 'Файл слишкой большой. Максимальный допустимый размер - 20МБ\nПопробуйте загрузить другой файл'
         await bot.send_message(message.chat.id, error_mes)
 
 
-@disp.callback_query_handler(lambda call: True)
+@dis.callback_query_handler(lambda call: True)
 async def subscription_command(call):
     """ Обработчик команд подписки/отписки """
     await bot.answer_callback_query(call.id)
@@ -235,29 +244,19 @@ async def subscription_command(call):
         await bot.send_message(call.message.chat.id, FEEDBACK_MESS, reply_markup=back_markup)
     elif call.data == 'no':
         db.update_subscription(call.from_user.id, False)
-        await bot.send_message(call.message.chat.id, 'Жаль... Вы отписались')
+        await bot.send_message(call.message.chat.id, 'Жаль... Вы не подписаны')
         await bot.send_message(call.message.chat.id, FEEDBACK_MESS, reply_markup=back_markup)
 
 
-@disp.message_handler(lambda message: True)
-def error_command(message):
-    """ Обработчик некоректных запросов """
-    try:
-        bot.send_message(message.chat.id, 'Простите, я не знаю такой команды :(')
-    except Exception as err:
-        print('Something wrong! Exception: {}'.format(err))
-
-
 async def send_discribution():
-    """ Рассылка новых детей всем подписчикам (пока не работает) """
+    """ Рассылка новых детей всем подписчикам """
     while True:
-        await asyncio.sleep(10)
+        await asyncio.sleep(10)     # 10 секунд в тестовом режиме, 259200 (3*24*60*60) - 3 дня
 
         new_child = pars.new_child(pars.get_parser(BASE_HOST + CHILD_HOST).text)
 
         if new_child:
             subscribers = db.get_subscriptions()
-            print(subscribers)
             for dic in new_child:
                 mes = '*' + str(dic['name']) + '*\n\n' + str(dic['age']) + '\n' + str(dic['city']) + \
                       '\n' + str(dic['diagnoz']) + '\n' + '\n_' + str(dic['money'] + '_')
@@ -273,5 +272,5 @@ async def send_discribution():
 
 
 if __name__ == '__main__':
-    #   disp.loop.create_task(send_discribution())
-    executor.start_polling(disp, skip_updates=True)
+    loop.create_task(send_discribution())
+    executor.start_polling(dis, skip_updates=True)
