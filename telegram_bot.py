@@ -22,8 +22,8 @@ logger.add('debug_korablik_1.log', format='\t{time}  {level}  {message}\n\n',
 
 bot = Bot(token=config.TOKEN)
 dis = Dispatcher(bot)
-db = config.DB
-pdf_file = config.PDF_FILE
+db = config.DB  # База данных юзеров
+pdf_file = config.PDF_FILE  # Презентация фонда
 loop = asyncio.get_event_loop()
 
 BASE_HOST = 'https://korablik-fond.ru/'
