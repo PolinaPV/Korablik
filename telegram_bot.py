@@ -17,6 +17,7 @@ import logging  # Change to loguru
 #   print(emoji.demojize('👍🏻'))     # Декодирование эмоджи
 #   logging.basicConfig(filename='korablik.log', format='\n%(name)s - %(levelname)s - %(message)s', level=logging.INFO)
 
+
 logger.add('debug_korablik.log', format='\t{time}  {level}  {message}\n\n',
            level='ERROR', rotation='1 week', compression='zip')  # , serialize=True)     #   Для json формата
 
