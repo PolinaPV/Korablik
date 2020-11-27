@@ -1,7 +1,7 @@
 import requests
 from bs4 import BeautifulSoup
 
-''' Old version parser of the Korablik-fond.ru website '''
+''' Parser of the old version Korablik-fond.ru website '''
 
 HEADERS = {
     'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9',
@@ -15,11 +15,12 @@ def get_html(url):
 
 
 def get_parser(url):
-    html = get_html(url)
-    if html.status_code == 200:
-        return html
-    else:
-        print('Error status code')
+    try:
+        html = get_html(url)
+        if html.status_code == 200:
+            return html
+    except:
+        pass
 
 
 def get_all_content(url):
@@ -58,6 +59,7 @@ def get_contacts(url):
     li_3 = ul[2].findAll('li')
     li_4 = ul[3].findAll('li')
     cont_req = []
+    contact = None
     for dic in li_1:
         contact = dict({
             'phone': li_1[0].find('span').get_text() + li_1[0].find('a').get('href'),
@@ -178,9 +180,8 @@ def new_child(url):
     for dict in childrens:
         last_key = get_child_key(dict)
         if last_key != false_key:
-            print('last =', last_key, ' false =', false_key)
+            # print('last =', last_key, ' false =', false_key)
             new.append(dict)
         else:
             break
     return new
-
