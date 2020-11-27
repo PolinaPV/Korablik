@@ -8,7 +8,7 @@ from aiogram.utils.exceptions import FileIsTooBig
 import urllib.request
 import emoji
 """  
-#   telebot не ассинхронная либа, не вариант для рассылки  
+    #   telebot не ассинхронная либа, не вариант для рассылки  
 import telebot
 from telebot.types import InlineKeyboardButton, InlineKeyboardMarkup, ReplyKeyboardMarkup, KeyboardButton
 import logging  # Change to loguru
